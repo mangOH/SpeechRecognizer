@@ -1,0 +1,32 @@
+executables:
+{
+	speechRecognizer = ( speechRecognizerComponent )
+}
+
+processes:
+{
+	envVars:
+	{
+		LE_LOG_LEVEL = DEBUG
+	}
+
+	run:
+	{
+		( speechRecognizer )
+	}
+
+	maxCoreDumpFileBytes: 512K
+	maxFileBytes: 512K
+}
+
+requires:
+{
+	device:
+	{
+		[rw]	/dev/ttyHS0	/dev/
+	}
+}
+
+
+version: 1.0.0
+maxFileSystemBytes: 512K
