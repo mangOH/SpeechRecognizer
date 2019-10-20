@@ -5,11 +5,6 @@ executables:
 
 processes:
 {
-	envVars:
-	{
-		LE_LOG_LEVEL = DEBUG
-	}
-
 	run:
 	{
 		( speechRecognizer )
@@ -17,6 +12,12 @@ processes:
 
 	maxCoreDumpFileBytes: 512K
 	maxFileBytes: 512K
+}
+
+bindings:
+{
+    speechRecognizer.speechRecognizerComponent.dhubIO -> dataHub.io // required API
+    speechRecognizer.speechRecognizerComponent.admin -> dataHub.admin
 }
 
 requires:

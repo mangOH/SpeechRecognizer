@@ -4,7 +4,12 @@
 #include <termios.h>
 #include <unistd.h>
 
-const char *voiceBuffer[] =
+#define UNKNOWN_CMD_NUM		252
+
+// Data Hub resource paths.
+#define RES_PATH_WRITE_EINK     "/app/einkDhubIf/value"
+
+static const char *voiceBuffer[] =
 {
 	"Turn on the light",
 	"Turn off the light",
@@ -30,15 +35,33 @@ const char *voiceBuffer[] =
 	"Go",
 };
 
-int open_uart1 (  char *dev){ 
+int open_uart1(char *dev)
+{ 
+
 	int     fd;
-	fd = open (dev, O_RDWR | O_NOCTTY | O_NDELAY);
 	struct termios options;
+
+	fd = open (dev, O_RDWR | O_NOCTTY | O_NDELAY);
+	if(fd == -1) {
+		LE_ERROR("Failed open of serial port: %s", strerror(fd));
+		exit(1);
+	}
+
 	// The old way. Let's not change baud settings
 	fcntl (fd, F_SETFL, 0);
+	if(fd == -1) {
+		LE_ERROR("Failed F_SETFL: %s", strerror(fd));
+		exit(1);
+	}
+
 	// get the parameters
 	tcgetattr (fd, &options);
-	// Set the baud rates to 115200...
+	if(fd == -1) {
+		LE_ERROR("Failed tcgetattr: %s", strerror(fd));
+		exit(1);
+	}
+
+	// Set the baud rates to 9600...
 	cfsetispeed(&options, B9600);
 	cfsetospeed(&options, B9600);
 	// Enable the receiver and set local mode...
@@ -67,6 +90,10 @@ int open_uart1 (  char *dev){
 
 	// Set the new options for the port...
 	tcsetattr (fd, TCSANOW, &options);
+	if(fd == -1) {
+		LE_ERROR("Failed tcsetattr: %s", strerror(fd));
+		exit(1);
+	}
 
 	return fd;
 }
@@ -76,34 +103,33 @@ void read_uart1(int fd)
 	char read_buffer[32];   /* Buffer to store the data received              */
 	int  bytes_read = 0;    /* Number of bytes read by the read() system call */
 	int i = 0;
+	uint CmdNum;
 
 	bytes_read = read(fd,&read_buffer,10); /* Read the data                   */
 
-	for(i=0 ; i < bytes_read; i++)
-	{
-		printf(voiceBuffer[read_buffer[i] - 1]);
+	for(i=0 ; i < bytes_read; i++) {
+		CmdNum = read_buffer[i] - 1;
+		if(CmdNum == UNKNOWN_CMD_NUM)
+			admin_PushString(RES_PATH_WRITE_EINK, 0, "TALK LOUDER or CLEARER");
+		else if(CmdNum < sizeof(voiceBuffer)/sizeof(voiceBuffer[0]))
+			admin_PushString(RES_PATH_WRITE_EINK, 0, voiceBuffer[CmdNum]);
 	}
-	printf("\n----------------------------------\n");
 }
-
-void write_uart1 (int fd, char *cmd)
-{
-	int     wrote = 0;
-	wrote = write (fd, cmd, strlen (cmd));
-	LE_INFO("wrote  %d ",wrote);
-} 
-
 
 COMPONENT_INIT
 {
-	LE_INFO("Hello, world.");
 	int serial_fd;
 	
 	serial_fd= open_uart1("/dev/ttyHS0");
+        if(serial_fd == -1) {
+                LE_ERROR("Failed open_uart1");
+                exit(1);
+        }
 
-	while(1)
-	{
+	LE_INFO("We have %d commands", sizeof(voiceBuffer)/sizeof(voiceBuffer[0]));
+	// Let's loop forever reading from the recognizer and updating outputs
+	while(1) 
 		read_uart1(serial_fd);
-	}
+
 	close(serial_fd);
 }

@@ -5,5 +5,9 @@ sources:
 
 requires:
 {
-	
+    api:
+    {
+        dhubIO = io.api
+        admin.api
+    }
 }

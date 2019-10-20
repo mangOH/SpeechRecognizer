@@ -1,0 +1,11 @@
+/*
+ * This depends on the einkDhubIf to write to the Eink display.
+ */
+
+apps:
+{
+#if ${MANGOH_BOARD} = yellow
+    $CURDIR/speechRecognizer/speechRecognizer
+#endif
+}
+
